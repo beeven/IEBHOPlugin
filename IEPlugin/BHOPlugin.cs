@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using mshtml;
@@ -19,6 +21,15 @@ namespace IEPlugin
     {
         private InternetExplorer ieInstance;
         private const string BHORegistryKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Browser Helper Objects";
+
+        private string assemblyLocation;
+        private Manifest manifest;
+        public BHOPlugin()
+        {
+            
+            assemblyLocation = this.GetType().Assembly.Location;
+        }
+
 
         [ComRegisterFunction]
         public static void RegisterBHO(Type t)
@@ -56,6 +67,13 @@ namespace IEPlugin
 
         public void SetSite([In, MarshalAs(UnmanagedType.IUnknown)] object pUnkSite)
         {
+            
+            var manifestLocation = Path.Combine(Path.GetDirectoryName(this.assemblyLocation), "content", "manifest.json");
+            
+
+            manifest = new Manifest(manifestLocation);
+
+
             if (pUnkSite != null)
             {
                 ieInstance = (InternetExplorer)pUnkSite;
@@ -77,22 +95,51 @@ namespace IEPlugin
             {
                 return;
             }
+            
+
+            bool isOriginMatched = false;
+            foreach(var origin in manifest.AllowedOrigins)
+            {
+                
+                if (Regex.IsMatch(url, origin))
+                {
+                    isOriginMatched = true;
+                    break;
+                }
+            }
+
+            if (!isOriginMatched)
+            {
+                return;
+            }
+
 
             InternetExplorer explorer = pDisp as InternetExplorer;
 
             HTMLDocument document = explorer.Document;
             HTMLHeadElement head = document.all.tags("head").item(null, 0);
 
-            IHTMLScriptElement scriptObject = (IHTMLScriptElement)document.createElement("script");
-            scriptObject.type = "text/javascript";
-            scriptObject.text = "\nfunction hidediv(){document.getElementById('myOwnDiv').style.visibility='hidden';}";
+            foreach(var stylesheet in manifest.StyleSheets)
+            {
+                IHTMLStyleElement styleObject = (IHTMLStyleElement)document.createElement("style");
+                styleObject.type = "text/css";
+                styleObject.styleSheet.cssText = stylesheet;
+                head.appendChild((IHTMLDOMNode)styleObject);
+            }
 
-            head.appendChild((IHTMLDOMNode)scriptObject);
-            string div = "<div id='myOwnDiv' style='position:absolute;top:0;left:0;width:100px;height:50px;z-index:9999;'>" +
-                         "<div>hello world!</div>" +
-                         "<a href='javascript:hidediv();'>close</a>" +
-                         "</div>";
-            document.body.insertAdjacentHTML("afterBegin", div);
+            foreach(var script in manifest.Scripts)
+            {
+                IHTMLScriptElement scriptObject = (IHTMLScriptElement)document.createElement("script");
+                scriptObject.type = "text/javascript";
+                scriptObject.text = script;
+                head.appendChild((IHTMLDOMNode)scriptObject);
+
+            }
+
+            foreach(var html in manifest.Htmls)
+            {
+                document.body.insertAdjacentHTML("beforeEnd", html);
+            }
         }
 
         public void GetSite(ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out IntPtr ppvSite)

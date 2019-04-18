@@ -1,0 +1,18 @@
+{
+  "name": "",
+  "description": "",
+  "allowed_origins": [
+    ".*jd.com/.*",
+    ".*baidu.com/"
+  ],
+  "scripts": [
+    "jquery-1.12.4.min.js",
+    "inject.js"
+  ],
+  "htmls": [
+    "inject.html"
+  ],
+  "stylesheets": [
+    "inject.css"
+  ]
+}
