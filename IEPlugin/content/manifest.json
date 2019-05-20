@@ -2,10 +2,10 @@
   "name": "",
   "description": "",
   "allowed_origins": [
-    ".*jd.com/.*",
-    ".*baidu.com/"
+    "http://10.226.1.183/UI/Print/DipOrgGoods.aspx.*"
   ],
   "scripts": [
+    "json3.min.js",
     "jquery-1.12.4.min.js",
     "inject.js"
   ],

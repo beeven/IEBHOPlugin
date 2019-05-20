@@ -28,6 +28,8 @@ namespace IEPlugin
         {
             
             assemblyLocation = this.GetType().Assembly.Location;
+            var manifestLocation = Path.Combine(Path.GetDirectoryName(this.assemblyLocation), "content", "manifest.json");
+            manifest = new Manifest(manifestLocation);
         }
 
 
@@ -68,12 +70,6 @@ namespace IEPlugin
         public void SetSite([In, MarshalAs(UnmanagedType.IUnknown)] object pUnkSite)
         {
             
-            var manifestLocation = Path.Combine(Path.GetDirectoryName(this.assemblyLocation), "content", "manifest.json");
-            
-
-            manifest = new Manifest(manifestLocation);
-
-
             if (pUnkSite != null)
             {
                 ieInstance = (InternetExplorer)pUnkSite;
@@ -95,12 +91,10 @@ namespace IEPlugin
             {
                 return;
             }
-            
 
             bool isOriginMatched = false;
             foreach(var origin in manifest.AllowedOrigins)
-            {
-                
+            {   
                 if (Regex.IsMatch(url, origin))
                 {
                     isOriginMatched = true;
